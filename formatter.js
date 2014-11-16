@@ -3,61 +3,64 @@
 var _   = require('underscore'),
     clc = require('cli-color');
 
-function Formatter() {};
+function Formatter() {}
 
 Formatter.prototype.colors = {
     string: clc.green,
     number: clc.yellow,
-    "null": clc.bold
+    'null': clc.bold
 };
 
 Formatter.prototype.formats = {
     pretty: {
-        indent: "    ", // 4 spaces
+        indent: '    ', // 4 spaces
         innerObjectIndent: true,
-        quotes: "\"",
+        quotes: '\"',
         backToLine: true,
         afterColon: ' '
     },
     flat: {
-        indent: "",
+        indent: '',
         innerObjectIndent: false,
-        quotes: "\"",
+        quotes: '\"',
         backToLine: false,
         afterColon: ''
     }
 };
 
-Formatter.prototype.withColor = function(data) {
+Formatter.prototype.withColor = function(data, ctx) {
     var result = {};
     for (var key in data) {
-        result[key] = this.colorElement(data[key]);
+        result[key] = this.colorElement(data[key], ctx);
     }
     return result;
 };
 
-Formatter.prototype.colorElement = function(element) {
-    var newValue = undefined;
+Formatter.prototype.colorElement = function(element, ctx) {
+    var newValue;
 
-    if (this.colors[typeof element]) {
-        newValue = this.colors[typeof element](element);
+    if (_.isString(element)) {
+        newValue = this.colors.string(ctx.quotes + element + ctx.quotes);
     }
-    else if (element === null) {
-        newValue = this.colors["null"]("null");
+    else if (_.isNumber(element)) {
+        newValue = this.colors.number(element);
+    }
+    else if (_.isNull(element)) {
+        newValue = this.colors['null']('null');
     }
     else if (_.isArray(element)) {
         newValue = [];
         for(var index in element) {
-            newValue.push(this.colorElement(element[index]));
+            newValue.push(this.colorElement(element[index], ctx));
         }
     }
     else if (_.isObject(element)) {
-        newValue = this.withColor(element);
+        newValue = this.withColor(element, ctx);
     }
 
-
     if (newValue === undefined) {
-        exit("Value of unexpected type for key: " + key);
+        console.error('Element of unexpected type: ' + element);
+        process.exit(0);
     }
     return newValue;
 };
@@ -122,7 +125,7 @@ Formatter.prototype.objectToString = function(obj, ctx, level) {
     });
 
     return start + separator + items.join(',' + separator) + end;
-}
+};
 
 Formatter.prototype.arrayToString = function(array, ctx, level) {
     if (array.length === 0) {
@@ -138,6 +141,6 @@ Formatter.prototype.arrayToString = function(array, ctx, level) {
         });
 
     return start + separator + items.join(',' + separator) + end;
-}
+};
 
 module.exports = Formatter;

@@ -2,12 +2,14 @@
 'use strict';
 
 var _           = require('underscore'),
+    fs          = require('fs'),
     program     = require('commander'),
     formatter   = new (require('../formatter'))();
 
 program
   .version('0.0.1')
   .option('-f, --format [ ' + Object.keys(formatter.formats).join(' | ') + ' ]', 'Available formats')
+  .option('-F, --formatFile [file]', 'Format file')
   .option('-c, --color', 'Add color')
   .option('-i, --indent n', 'Indent by n spaces')
   .parse(process.argv);
@@ -19,9 +21,22 @@ function exit(message) {
     process.exit(0);
 }
 
-// Verify that arguments are correct
-if (program.format && !formatter.formats[program.format]) {
-    exit('Unknown format ' + program.format + '.');
+// Arguments processing
+if (program.format) {
+    if (!formatter.formats[program.format]) {
+        return exit('Unknown format ' + program.format + '.');
+    }
+    program.formatter = formatter.formats[program.format];
+}
+if (program.formatFile) {
+    if (program.format) {
+        return exit('Can not specify both format and formatFile.');
+    }
+    try {
+        program.formatter = JSON.parse(fs.readFileSync(program.formatFile));
+    } catch (error) {
+        return exit(error);
+    }
 }
 
 if (program.indent) {
@@ -49,16 +64,17 @@ process.stdin.on('end', function() {
         exit(error);
     }
 
+    var context = _.extend({
+        innerLevel: 0,
+        indent: '    ',
+        backToLine: true,
+        afterColon: ' ',
+        quotes: '\"'
+    }, program.formatter);
+
     if (program.color) {
-        data = formatter.withColor(data);
+        data = formatter.withColor(data, context);
     }
 
-    // if (program.format) {
-    //     data = formatter.formats[program.format](data, program);
-    // }
-    var startParams = _.extend({
-        innerLevel: 0
-    }, formatter.formats[program.format]);
-
-    process.stdout.write(formatter.objectToString(data, startParams));
+    process.stdout.write(formatter.objectToString(data, context));
 });
