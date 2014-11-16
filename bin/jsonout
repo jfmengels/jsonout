@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 'use strict';
 
-var program     = require('commander'),
-    formatter  = new(require('../formatter'));
+var _           = require('underscore'),
+    program     = require('commander'),
+    formatter   = new (require('../formatter'))();
 
 program
   .version('0.0.1')
@@ -20,14 +21,14 @@ function exit(message) {
 
 // Verify that arguments are correct
 if (program.format && !formatter.formats[program.format]) {
-    exit("Unknown format " + program.format + ".");
+    exit('Unknown format ' + program.format + '.');
 }
 
 if (program.indent) {
     try {
         program.indent = parseInt(program.indent);
         if (program.indent < 1 || program.indent > 16) {
-            exit("Indent needs to be between 1 and 16.");
+            exit('Indent needs to be between 1 and 16.');
         }
     } catch (error) {
         exit(error);
@@ -52,8 +53,12 @@ process.stdin.on('end', function() {
         data = formatter.withColor(data);
     }
 
-    if (program.format) {
-        data = formatter.formats[program.format](data, program);
-    }
-    process.stdout.write(data);
+    // if (program.format) {
+    //     data = formatter.formats[program.format](data, program);
+    // }
+    var startParams = _.extend({
+        innerLevel: 0
+    }, formatter.formats[program.format]);
+
+    process.stdout.write(formatter.objectToString(data, startParams));
 });
